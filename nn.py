@@ -1,33 +1,36 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
-np.seterr(invalid='ignore')
+import timeit
+
+start = timeit.default_timer()
+########Training data processing#########
+np.seterr(invalid='ignore')    #ignoring NaN type warning
 data = np.loadtxt("hw2_data4.txt")
-num_examples = int(len(data)) # training set size
-np.random.shuffle(data)
-X=[]
-y = []
+num_examples = int(len(data))   # training set size
+np.random.shuffle(data)         #Data shuffling as part of data preprocessing
+X=[]                            #Training data feature set value
+y = []                          #Training data labels
 print num_examples
 for i in range(0,num_examples):
     X.append([data[i,0],data[i,1],data[i,2]])
 
-    # define training set
+# define training set
 X = np.asarray(X)
 #standardization of training data for better result
 #To standardize the data over each column
-X = (X - np.mean(X, axis=0)) / np.std(X, axis=0, ddof=1)
+#X = (X - np.mean(X, axis=0)) / np.std(X, axis=0, ddof=1)
 #####################################
 #Normalization of training data
-#X = (X-np.min(X))/(np.max(X)-np.min(X))
+X = (X-np.min(X))/(np.max(X)-np.min(X))
 #####################################
-#class value
+#Training data class labels
 for i in range(0,num_examples):
     if data[i,3] == 1: #class 1 which is 1
         y.append(0)
     elif(data[i,3] == 2):
         y.append(1) # class 2 which is 2
 y = np.array(y).astype(int)
-
+#Preprocessing of training data ends here
 
 # Display plots inline and change default figure size
 # Display data plot for data set 1
@@ -44,10 +47,10 @@ y = np.array(y).astype(int)
 loss = []
 iteration = []
 
-num_examples = len(X) # training set size
 nn_input_dim = 3 # input layer dimensionality
 nn_output_dim = 2 # output layer dimensionality
-
+dropout = 0.5
+fold = 10
 # Gradient descent parameters (picked by hand)
 epsilon = 0.001 # learning rate for gradient descent
 reg_lambda = 0.1 # regularization strength
@@ -102,16 +105,17 @@ class NeuralNetwork:
         # Add regulatization term to loss (optional)
         data_loss += reg_lambda/2 * (np.sum(np.square(W1)) + np.sum(np.square(W2)) + np.sum(np.square(W2)))
         return 1./num_examples * data_loss
+
     # Helper function to predict an output (0 or 1)
     def predict(self, model, x):
         W1, b1, W2, b2, W3, b3 = model['W1'], model['b1'], model['W2'], model['b2'], model['W3'], model['b3']
         # Forward propagation
         z1 = x.dot(W1) + b1
         a1 = self.activation(z1)
-        z2 = a1.dot(W2) + b2
+        #dropout for testing, multiple array with 0.5 with first hidden layer
+        z2 = dropout*a1.dot(W2) + b2
         a2 = self.activation(z2)
-        #dropout for testing, multiple array with 0.5
-        z3 = 0.5*a2.dot(W3) + b3
+        z3 = a2.dot(W3) + b3
         exp_scores =np.exp(z3)
         probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
         return np.argmax(probs, axis=1)
@@ -136,7 +140,7 @@ class NeuralNetwork:
             #stochastic gardient desent
             X_stoch = []
             y_stoch = []
-            B = np.random.randint(num_examples,size=k)
+            B = np.random.randint(len(X),size=k)
             X_stoch = X[B,:]
             y_stoch = y[B]
             #print X_stoch
@@ -144,9 +148,10 @@ class NeuralNetwork:
 
             # Forward propagation
             z1 = np.dot(X_stoch,W1) + b1
-            #masking for dropout
-            m2 = np.random.binomial(1, 0.5, size=z1.shape)
-            a1 = self.activation(z1)*m2
+            #masking for dropout at layer 1
+            m2 = np.random.binomial(1, dropout, size=z1.shape)
+            a1 = self.activation(z1)
+            a1 *= m2
             #####################
             z2 = a1.dot(W2) + b2
             a2 = self.activation(z2)
@@ -160,10 +165,13 @@ class NeuralNetwork:
             delta3[range(k), y_stoch] -= 1
             dW3 = (a2.T).dot(delta3)
             db3 = np.sum(delta3, axis=0, keepdims=True)
+
             delta2 = delta3.dot(W3.T) * self.activation_deriv(a2)
             dW2 = np.dot(a1.T, delta2)
             db2 = np.sum(delta2, axis=0)
-            delta1 = delta2.dot(W2.T) * self.activation_deriv(a1)
+
+            #Dropout in back propagation m2 = binary mask
+            delta1 = delta2.dot(W2.T) * self.activation_deriv(a1)*m2
             dW1 = np.dot(X_stoch.T, delta1)
             db1 = np.sum(delta1, axis=0)
 
@@ -185,24 +193,37 @@ class NeuralNetwork:
 
             # Optionally print the loss.
             # This is expensive because it uses the whole dataset, so we don't want to do it too often.
-            if print_loss and i % 10 == 0:
+            if print_loss and i % 5 == 0:
                 iteration.append(i)
                 loss.append(self.calculate_loss(model))
                 print "Loss after iteration %i: %f" %(i, self.calculate_loss(model))
         return model
-nn = NeuralNetwork('sigmoid')
+nn = NeuralNetwork('tanh')
+#10 fold cross validation
+fold = 10
+training_fold = (num_examples/fold)*(fold-1)
+training_data = X[:-training_fold]
+training_label = y[:-training_fold]
+testing_data = X[(training_fold+1):]
+testing_label = y[(training_fold+1):]
+length_test_data = len(testing_data)
+##
+
 model = nn.build_model(X, y, 10,5, print_loss=True)
-num_test = 30
 count = 0.0
-test = np.zeros(shape=(num_test,2))
-for i in range(0,num_test):
+num_of_test_data = 40
+for i in range(0,num_of_test_data):
     result = nn.predict(model,X[i])
     print(i,result[0])
     if result == y[i]:
         count = count + 1
 print count
-accuracy = (count/num_test)*100
+accuracy = (count/num_of_test_data)*100
 print "Accuracy is %f" %accuracy
+
+stop = timeit.default_timer()
+print "Total running time of Neural Network " + str(stop - start)
+
 #print iteration[1:]
 fig = plt.figure()
 plt.plot(iteration[1:],loss[1:])
