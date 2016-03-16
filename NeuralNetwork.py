@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 np.seterr(invalid='ignore')
-data = np.loadtxt("NeuralNetworkHw2/hw2_data4.txt")
+data = np.loadtxt("hw2_data4.txt")
 num_examples = int(len(data)) # training set size
 np.random.shuffle(data)
 X=[]

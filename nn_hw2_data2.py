@@ -4,7 +4,7 @@ import matplotlib
 import csv
 
 #data = np.loadtxt("hw2_data1.txt")
-myfile = open('NeuralNetworkHw2/hw2_data2.txt',"r")
+myfile = open('NeuralNetworkHw2/hw2_data4.txt',"r")
 
 # Read in the data
 X=[]
