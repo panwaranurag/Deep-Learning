@@ -2,6 +2,7 @@
 Project part of deep learning
 
 nn.py
+In this project, we are trying to develop deep neural network from screatch using user defined number of hidden layers, number of neurons and batch size for schostic gradient descent. This project can be use by anyone who want to build model on deep neural network. This implement is very flexible according to user need.
 
 Designed deep neural network from scratch
 - Input file: hw2_data4.txt
@@ -15,7 +16,6 @@ Designed deep neural network from scratch
 * Investigated performance of sigmoid, relu and tanh as activation function (Perceptrons)
 * Implemented stochastic gradient descent for faster training
 * Applied centralization and normalization to training data
-* 
 
 CNN (Convolutional Neural Network)
 
