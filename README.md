@@ -10,7 +10,6 @@ Designed deep neural network from scratch
 - Number of output neurons = 2 (Classification problem with 2 class labels)
 - Hidden layer: User defined on runtime
 - Number of neurons in each hidden layer: User defined as an argument
-
 * Developed feed-forward and back-propagation from scratch
 * Implemented Dropout to overcome problem of overfitting
 * Investigated performance of sigmoid, relu and tanh as activation function (Perceptrons)
